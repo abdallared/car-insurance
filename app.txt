@@ -1,0 +1,133 @@
+from flask import Flask, request, jsonify, render_template
+import joblib
+import numpy as np
+import pandas as pd
+from sklearn.base import BaseEstimator, TransformerMixin
+import os
+
+class LogTransformer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self.n_features_in_ = X.shape[1]
+        return self
+
+    def transform(self, X, y=None):
+        # Add 1 to avoid log(0) and -inf
+        return np.log(X + 1)
+
+app = Flask(__name__)
+
+# Load the trained pipeline (with error handling)
+try:
+    model = joblib.load('voting_pipeline.pkl')
+    print("Model loaded successfully!")
+except FileNotFoundError:
+    print("Warning: Model file 'voting_pipeline.pkl' not found. Please ensure the file exists.")
+    model = None
+
+# List of features in the order expected by the model
+FEATURES = [
+    'AGE', 'GENDER', 'RACE', 'DRIVING_EXPERIENCE', 'EDUCATION', 'INCOME',
+    'CREDIT_SCORE', 'VEHICLE_OWNERSHIP', 'VEHICLE_YEAR', 'MARRIED', 'CHILDREN',
+    'ANNUAL_MILEAGE', 'VEHICLE_TYPE', 'SPEEDING_VIOLATIONS', 'DUIS',
+    'PAST_ACCIDENTS', 'AGE_RISK_LEVEL', 'TOTAL_VIOLATIONS',
+    'DAILY_MILEAGE_ESTIMATE', 'IS_FAMILY_DRIVER'
+]
+
+@app.route('/', methods=['GET', 'POST'])
+def predict():
+    prediction = None
+    proba = None
+    input_values = {feature: '' for feature in FEATURES}
+    error_message = None
+    
+    if request.method == 'POST':
+        try:
+            if model is None:
+                error_message = "Model not loaded. Please check if 'voting_pipeline.pkl' exists."
+                return render_template(
+                    "predict.html",
+                    prediction=prediction,
+                    proba=proba,
+                    features=FEATURES,
+                    input_values=input_values,
+                    error_message=error_message
+                )
+            
+            input_data = []
+            for feature in FEATURES:
+                value = request.form.get(feature)
+                input_values[feature] = value
+                
+                # Convert to appropriate numeric type
+                try:
+                    if value is None or value == '':
+                        raise ValueError(f"Missing value for {feature}")
+                    value = float(value)
+                except (ValueError, TypeError):
+                    error_message = f"Invalid input for {feature}. Please enter a valid number."
+                    return render_template(
+                        "predict.html",
+                        prediction=prediction,
+                        proba=proba,
+                        features=FEATURES,
+                        input_values=input_values,
+                        error_message=error_message
+                    )
+                
+                input_data.append(value)
+            
+            # Create DataFrame and make prediction
+            df = pd.DataFrame([input_data], columns=FEATURES)
+            prediction = model.predict(df)[0]
+            proba = model.predict_proba(df)[0][1]
+            
+        except Exception as e:
+            error_message = f"An error occurred during prediction: {str(e)}"
+            print(f"Prediction error: {e}")
+    
+    return render_template(
+        "predict.html",
+        prediction=prediction,
+        proba=proba,
+        features=FEATURES,
+        input_values=input_values,
+        error_message=error_message
+    )
+
+@app.route('/api/predict', methods=['POST'])
+def api_predict():
+    """API endpoint for programmatic access"""
+    try:
+        if model is None:
+            return jsonify({"error": "Model not loaded"}), 500
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+        
+        input_data = []
+        for feature in FEATURES:
+            if feature not in data:
+                return jsonify({"error": f"Missing feature: {feature}"}), 400
+            input_data.append(float(data[feature]))
+        
+        df = pd.DataFrame([input_data], columns=FEATURES)
+        prediction = int(model.predict(df)[0])
+        proba = float(model.predict_proba(df)[0][1])
+        
+        return jsonify({
+            "prediction": prediction,
+            "probability": proba,
+            "risk_level": "HIGH RISK" if prediction == 1 else "LOW RISK"
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+if __name__ == '__main__':
+    # Create templates directory if it doesn't exist
+    if not os.path.exists('templates'):
+        os.makedirs('templates')
+        print("Created 'templates' directory")
+    
+    app.run(debug=True, host='0.0.0.0', port=5000)
