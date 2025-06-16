@@ -2,30 +2,30 @@ from flask import Flask, request, jsonify, render_template
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn import BaseEstimator, TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin
 import os
 
 # Custom transformer for the pipeline (if it was saved within the pipeline)
-# class LogTransformer(BaseEstimator, TransformerMixin):
-#     def fit(self, X, y=None):
-#         return self
-
-#     def transform(self, X, y=None):
-#         return np.log(X + 1)
-
 class LogTransformer(BaseEstimator, TransformerMixin):
-
-    # fit
     def fit(self, X, y=None):
-        # self.feature_names = list(X.columns)
-        self.n_features_in = X.shape[1]
         return self
 
-    # transformer
     def transform(self, X, y=None):
-        assert self.n_features_in == X.shape[1]
-        # Add 1 to avoid log(0) and -inf
         return np.log(X + 1)
+
+# class LogTransformer(BaseEstimator, TransformerMixin):
+
+#     # fit
+#     def fit(self, X, y=None):
+#         # self.feature_names = list(X.columns)
+#         self.n_features_in = X.shape[1]
+#         return self
+
+#     # transformer
+#     def transform(self, X, y=None):
+#         assert self.n_features_in == X.shape[1]
+#         # Add 1 to avoid log(0) and -inf
+#         return np.log(X + 1)
 
 
 
