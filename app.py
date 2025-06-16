@@ -65,8 +65,8 @@ app = Flask(__name__)
 
 # Load the trained pipeline
 try:
-    model = with open("voting_pipeline.pkl", "wb") as f:
-                cloudpickle.dump(model,f)
+    with open("voting_pipeline.pkl", "rb") as f:
+        model = cloudpickle.load(f
 except FileNotFoundError:
     print("Error: Model file 'voting_pipeline.pkl' not found. The app will not work without it.")
     model = None
