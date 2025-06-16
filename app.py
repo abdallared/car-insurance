@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from sklearn.base import BaseEstimator, TransformerMixin
 import os
+import cloudpickle
 
 # Custom transformer for the pipeline (if it was saved within the pipeline)
 class LogTransformer(BaseEstimator, TransformerMixin):
@@ -64,8 +65,8 @@ app = Flask(__name__)
 
 # Load the trained pipeline
 try:
-    model = joblib.load('voting_pipeline.pkl')
-    print("Model loaded successfully!")
+    model = with open("voting_pipeline.pkl", "wb") as f:
+                cloudpickle.dump(model,f)
 except FileNotFoundError:
     print("Error: Model file 'voting_pipeline.pkl' not found. The app will not work without it.")
     model = None
