@@ -2,17 +2,34 @@ from flask import Flask, request, jsonify, render_template
 import joblib
 import numpy as np
 import pandas as pd
-from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn import BaseEstimator, TransformerMixin
 import os
-import cloudpickle
 
 # Custom transformer for the pipeline (if it was saved within the pipeline)
+# class LogTransformer(BaseEstimator, TransformerMixin):
+#     def fit(self, X, y=None):
+#         return self
+
+#     def transform(self, X, y=None):
+#         return np.log(X + 1)
+
 class LogTransformer(BaseEstimator, TransformerMixin):
+
+    # fit
     def fit(self, X, y=None):
+        # self.feature_names = list(X.columns)
+        self.n_features_in = X.shape[1]
         return self
 
+    # transformer
     def transform(self, X, y=None):
+        assert self.n_features_in == X.shape[1]
+        # Add 1 to avoid log(0) and -inf
         return np.log(X + 1)
+
+
+
+
 
 # --- Feature Engineering Logic ---
 # This function should be identical to the one used during model training.
@@ -65,8 +82,8 @@ app = Flask(__name__)
 
 # Load the trained pipeline
 try:
-    with open("voting_pipeline.pkl", "rb") as f:
-        model = cloudpickle.load(f
+    model = joblib.load('voting_pipeline.pkl')
+    print("Model loaded successfully!")
 except FileNotFoundError:
     print("Error: Model file 'voting_pipeline.pkl' not found. The app will not work without it.")
     model = None
@@ -163,6 +180,6 @@ def api_predict():
 
 if __name__ == '__main__':
     # Ensure templates directory exists
-    if not os.path.exists('templates'):
-        os.makedirs('templates')
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    # if not os.path.exists('templates'):
+    #     os.makedirs('templates')
+    # app.run(debug=True, host='0.0.0.0', port=5000)
