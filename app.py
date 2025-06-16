@@ -6,12 +6,12 @@ from sklearn.base import BaseEstimator, TransformerMixin
 import os
 
 # Custom transformer for the pipeline (if it was saved within the pipeline)
-class LogTransformer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
+# class LogTransformer(BaseEstimator, TransformerMixin):
+#     def fit(self, X, y=None):
+#         return self
 
-    def transform(self, X, y=None):
-        return np.log(X + 1)
+#     def transform(self, X, y=None):
+#         return np.log(X + 1)
 
 # class LogTransformer(BaseEstimator, TransformerMixin):
 
